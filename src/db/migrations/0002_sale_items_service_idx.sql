@@ -1,0 +1,1 @@
+CREATE INDEX "sale_items_service_idx" ON "sale_items" USING btree ("service_id");
