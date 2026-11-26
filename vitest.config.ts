@@ -5,11 +5,8 @@ import { configDefaults, defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: [
-      // Same "@/..." alias as tsconfig, so tests can import the Server Actions themselves.
+      // Same "@/..." alias as tsconfig, so tests can import the actions themselves.
       { find: "@", replacement: path.resolve(process.cwd(), "src") },
-      // security.test.ts reaches into Client/src/app (relative import, see that file) to test the
-      // "use server" glue end to end; those files import their own backend logic via "@server/...".
-      { find: "@server", replacement: path.resolve(process.cwd(), "src") },
     ],
   },
   // Every DB test file boots its own in-memory Postgres (PGlite) and runs the migrations; with

@@ -14,8 +14,7 @@
     "incremental": true,
     "types": ["node"],
     "paths": {
-      "@/*": ["./src/*"],
-      "@server/*": ["./src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["**/*.ts", "**/*.mts"],

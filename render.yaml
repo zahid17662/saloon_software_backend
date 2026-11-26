@@ -1,0 +1,25 @@
+# Render Blueprint for the salon API (https://render.com/docs/blueprint-spec).
+# Secrets are NOT in this file: `sync: false` makes Render ask for them in the dashboard on first deploy.
+
+services:
+  - type: web
+    name: salon-api
+    runtime: node
+    region: singapore # same part of the world as the Neon database and Vercel's sin1
+    plan: free # free sleeps after 15 min idle (first request then takes ~1 min). Use `starter` for a shop that is open all day.
+    buildCommand: npm ci --include=dev && npm run db:migrate # applies pending migrations before the new version starts
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL # Neon POOLED connection string
+        sync: false
+      - key: DIRECT_URL # Neon DIRECT (non-pooler) connection string, used only by migrations at build time
+        sync: false
+      - key: SESSION_SECRET # must be EXACTLY the same value as on the Vercel project
+        sync: false
+      - key: API_KEY # must be EXACTLY the same value as on the Vercel project (>= 32 chars)
+        sync: false
+      - key: TRUST_PROXY_HEADERS # the client IP comes from the Vercel app (authenticated by API_KEY), so it can be trusted
+        value: "1"

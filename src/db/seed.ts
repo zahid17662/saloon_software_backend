@@ -21,8 +21,9 @@ import { seedDb } from "./seed-core";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Resolved from this file's own location (not cwd) since this runs as `tsx Server/src/db/seed.ts`
-// from the repo root; the real .env.local lives in Client/, next to the Next.js app that reads it.
+// Resolved from this file's own location (not cwd). Local development only: Server/.env, then the
+// old Client/.env.local of the dev meta-repo if present.
+config({ path: path.resolve(dirname, "../../.env") });
 config({ path: path.resolve(dirname, "../../../Client/.env.local") });
 
 function endpointId(url: string): string {

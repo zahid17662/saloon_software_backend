@@ -1,8 +1,7 @@
-import "server-only";
-import { cookies, headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import { and, count, eq, gt, inArray, lt, or } from "drizzle-orm";
 import { barbers, db, loginAttempts, settings } from "@/db";
+import { cookies, headers } from "./request-context";
 import {
   adminPinFingerprint,
   barberPasswordFingerprint,
@@ -19,7 +18,7 @@ import {
 import { normalizeIp, type AttemptStore } from "./rate-limit";
 
 // Server-side auth glue (PRD §5.1). The authoritative check lives here and is called from every
-// Server Action; proxy.ts only does convenience redirects (FR-4).
+// API action; proxy.ts only does convenience redirects (FR-4).
 
 export const BCRYPT_COST = 12;
 const ATTEMPT_RETENTION_MS = 24 * 60 * 60 * 1000;
@@ -188,12 +187,12 @@ export async function hasValidAdminSession(): Promise<boolean> {
   return s !== null && payload.pv === adminPinFingerprint(s.adminPinHash, getSecret());
 }
 
-/** Call at the top of every barber-facing Server Action. An admin session also counts. */
+/** Call at the top of every barber-facing API action. An admin session also counts. */
 export async function requireShop(): Promise<void> {
   if (!(await hasValidShopSession()) && !(await hasValidAdminSession())) throw new AuthError();
 }
 
-/** Call at the top of every admin-only Server Action. */
+/** Call at the top of every admin-only API action. */
 export async function requireAdmin(): Promise<void> {
   if (!(await hasValidAdminSession())) throw new AuthError();
 }
@@ -209,7 +208,7 @@ export async function hasValidBarberSession(barberId: number): Promise<boolean> 
 }
 
 /**
- * Call at the top of every Server Action that acts AS a specific barber (creating or voiding their
+ * Call at the top of every API action that acts AS a specific barber (creating or voiding their
  * own sale), instead of the blanket `requireShop()`. The device must hold BOTH a valid shop session
  * AND that specific barber's own password session - so rotating the shop code still revokes every
  * barber session on that device too, same as it already revokes the shop cookie itself. An admin

@@ -1,0 +1,9 @@
+node_modules
+coverage
+*.tsbuildinfo
+npm-debug.log*
+.DS_Store
+
+# env files (the example is committed, real values never are)
+.env*
+!.env.example
