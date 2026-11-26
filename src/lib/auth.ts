@@ -207,15 +207,21 @@ export async function hasValidBarberSession(barberId: number): Promise<boolean> 
   return payload.bv === barberPasswordFingerprint(barber.passwordHash, getSecret());
 }
 
+/** Returns the currently authenticated active barber id from the cookie, or null. */
+export async function getAuthenticatedBarberId(): Promise<number | null> {
+  const jar = await cookies();
+  const payload = verifyBarberCookie(jar.get(cookieName("barber", isSecure()))?.value, getSecret());
+  if (!payload) return null;
+  const [barber] = await db.select().from(barbers).where(eq(barbers.id, payload.barberId));
+  if (!barber?.active || !barber.passwordHash) return null;
+  return payload.bv === barberPasswordFingerprint(barber.passwordHash, getSecret()) ? payload.barberId : null;
+}
+
 /**
  * Call at the top of every API action that acts AS a specific barber (creating or voiding their
- * own sale), instead of the blanket `requireShop()`. The device must hold BOTH a valid shop session
- * AND that specific barber's own password session - so rotating the shop code still revokes every
- * barber session on that device too, same as it already revokes the shop cookie itself. An admin
- * session bypasses both checks, same as every other barber-facing check.
+ * own sale). The device must hold that specific barber's own password session (or an admin session).
  */
 export async function requireBarberSelf(barberId: number): Promise<void> {
   if (await hasValidAdminSession()) return;
-  if (!(await hasValidShopSession())) throw new AuthError();
   if (!(await hasValidBarberSession(barberId))) throw new AuthError();
 }

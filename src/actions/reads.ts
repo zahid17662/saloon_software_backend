@@ -6,7 +6,7 @@
 
 import { eq } from "drizzle-orm";
 import { barbers, db } from "@/db";
-import { AuthError, requireAdmin, requireBarberSelf, requireShop } from "@/lib/auth";
+import { AuthError, getAuthenticatedBarberId, hasValidAdminSession, requireAdmin, requireBarberSelf } from "@/lib/auth";
 import { todayKey } from "@/lib/time";
 import { exportBackup } from "@/server/backup";
 import { getCatalog, type Catalog } from "@/server/catalog";
@@ -33,32 +33,22 @@ async function guard(check: () => Promise<void>, to: string): Promise<ReadResult
   }
 }
 
-/** Layout catalog: null for visitors without a shop/admin session (the /unlock page). */
-export async function readCatalog(): Promise<Catalog | null> {
-  try {
-    await requireShop();
-  } catch (e) {
-    if (e instanceof AuthError) return null;
-    throw e;
-  }
+/** Layout catalog for the barber panel and admin screens. */
+export async function readCatalog(): Promise<Catalog> {
   return getCatalog(db);
 }
 
 export async function readHome(): Promise<ReadResult<Awaited<ReturnType<typeof todayStats>>>> {
-  return (await guard(requireShop, "/unlock")) ?? ok(await todayStats(db));
+  return ok(await todayStats(db));
 }
 
 export async function readBarber(barberId: number): Promise<ReadResult<Sale[]>> {
-  const noShop = await guard(requireShop, "/unlock");
-  if (noShop) return noShop;
   const noBarber = await guard(() => requireBarberSelf(barberId), `/barber-login/${barberId}`);
   if (noBarber) return noBarber;
   return ok(await barberSalesToday(db, barberId));
 }
 
 export async function readBarberLogin(barberId: number): Promise<ReadResult<{ id: number; name: string }>> {
-  const noShop = await guard(requireShop, "/unlock");
-  if (noShop) return noShop;
   const [barber] = await db
     .select({ id: barbers.id, name: barbers.name, active: barbers.active })
     .from(barbers)
@@ -68,9 +58,14 @@ export async function readBarberLogin(barberId: number): Promise<ReadResult<{ id
 }
 
 export async function readReceipt(saleId: number): Promise<ReadResult<Sale | null>> {
-  const noShop = await guard(requireShop, "/unlock");
-  if (noShop) return noShop;
-  return ok(await getSale(db, saleId));
+  const sale = await getSale(db, saleId);
+  if (!sale) {
+    if ((await hasValidAdminSession()) || (await getAuthenticatedBarberId()) !== null) return ok(null);
+    return redirectTo("/");
+  }
+  const noBarber = await guard(() => requireBarberSelf(sale.barberId), `/barber-login/${sale.barberId}`);
+  if (noBarber) return noBarber;
+  return ok(sale);
 }
 
 /** Public: the shop name for the unlock and admin-login pages. */

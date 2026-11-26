@@ -2,7 +2,6 @@ import { eq, sql } from "drizzle-orm";
 import { barbers, db, settings } from "@/db";
 import {
   attemptStore,
-  AuthError,
   checkSecret,
   clearAdminCookie,
   clearBarberCookie,
@@ -13,7 +12,6 @@ import {
   hasValidBarberSession,
   hasValidShopSession,
   hashSecret,
-  requireShop,
   setAdminCookie,
   setBarberCookie,
   setShopCookie,
@@ -163,11 +161,9 @@ export async function checkShopSession(): Promise<{ valid: boolean }> {
   }
 }
 
-/** A barber logging in to their own screen. The device must already be shop-unlocked. */
+/** A barber logging in to their own screen. */
 export async function barberLogin(input: unknown): Promise<ActionResult> {
   try {
-    await requireShop();
-
     const ip = await getClientIp();
     if (!ip) return fail(MSG.generic);
     if (!(await beginAttempt(attemptStore, ip, "barber")).allowed) return fail(MSG.blocked);
@@ -186,7 +182,6 @@ export async function barberLogin(input: unknown): Promise<ActionResult> {
     await setBarberCookie(barber.id, barber.passwordHash);
     return { ok: true };
   } catch (e) {
-    if (e instanceof AuthError) return fail(MSG.wrongCode); // device itself is not shop-unlocked
     logFailure("barberLogin", e);
     return fail(MSG.generic);
   }
