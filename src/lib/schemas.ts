@@ -197,6 +197,9 @@ export const appointmentCreateInput = z.strictObject({
   customerPhone: appointmentPhone,
   date: z.string({ error: APPT_MSG.badDate }).regex(/^\d{4}-\d{2}-\d{2}$/, APPT_MSG.badDate),
   time: z.string({ error: APPT_MSG.badTime }).regex(/^\d{2}:\d{2}$/, APPT_MSG.badTime),
+  // What the customer actually typed (e.g. "12 to 1pm"); `time` above is that text parsed down to
+  // one HH:MM slot on the client. Kept verbatim so the admin can see what the customer meant.
+  preferredTimeText: z.string({ error: APPT_MSG.badTime }).trim().max(60, APPT_MSG.tooLong).nullable().default(null),
   note: z.string({ error: APPT_MSG.note }).trim().max(200, APPT_MSG.note).default(""),
   idempotencyKey: z.string({ error: M.id }).trim().min(8, M.id).max(64, M.id),
 });

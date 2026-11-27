@@ -18,6 +18,7 @@ const base = (): AppointmentCreateInput => ({
   customerPhone: "01711112222",
   date: "2026-03-11",
   time: "14:00",
+  preferredTimeText: null,
   note: "",
   idempotencyKey: `apt-${++n}-${"x".repeat(8)}`,
 });

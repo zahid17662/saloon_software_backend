@@ -5,7 +5,7 @@ const none = { hasShop: false, hasAdmin: false };
 
 describe("guardRoute", () => {
   it("sends a device with no cookie from the staff screens to /unlock", () => {
-    for (const pathname of ["/pos", "/barber-login/3", "/barber/3", "/receipt/9"]) {
+    for (const pathname of ["/pos", "/barber-login/3", "/barber/3", "/receipt/9", "/appointments"]) {
       expect(guardRoute({ pathname, search: "", ...none }), pathname).toEqual({ redirect: "/unlock" });
     }
   });

@@ -27,7 +27,7 @@ describe("migrations on an empty database", () => {
     await migrate(db, { migrationsFolder: folder });
     await migrate(db, { migrationsFolder: folder });
     const r = await db.execute(sql`select count(*)::int as n from drizzle.__drizzle_migrations`);
-    expect((r.rows[0] as { n: number }).n).toBe(5); // 0000, 0001, 0002, 0003, 0004: none applied twice
+    expect((r.rows[0] as { n: number }).n).toBe(6); // 0000, 0001, 0002, 0003, 0004, 0005: none applied twice
     await client.close();
   });
 

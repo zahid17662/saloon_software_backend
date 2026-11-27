@@ -177,6 +177,9 @@ export const appointments = pgTable(
     barberId: integer("barber_id").references(() => barbers.id, { onDelete: "set null" }),
     barberNameSnapshot: text("barber_name_snapshot"), // null = no preference
     requestedAt: tz("requested_at").notNull(),
+    // What the customer actually typed for a time (e.g. "12 to 1", "2pm"), kept verbatim for the
+    // admin alongside requestedAt (the normalized slot the free-text time field was parsed into).
+    preferredTimeText: text("preferred_time_text"),
     note: text("note").notNull().default(""),
     status: appointmentStatus("status").notNull().default("PENDING"),
     createdAt: tz("created_at").notNull().defaultNow(),

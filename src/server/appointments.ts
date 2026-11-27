@@ -33,6 +33,7 @@ const toAppointment = (r: Row): Appointment => ({
   barberId: r.barberId,
   barberName: r.barberNameSnapshot,
   requestedAt: r.requestedAt.toISOString(),
+  preferredTimeText: r.preferredTimeText,
   note: r.note,
   status: r.status,
   createdAt: r.createdAt.toISOString(),
@@ -78,6 +79,7 @@ export async function createAppointment(db: Db, input: AppointmentCreateInput, n
         barberId: input.barberId,
         barberNameSnapshot: barberName,
         requestedAt,
+        preferredTimeText: input.preferredTimeText,
         note: input.note,
         createdAt: now,
       })

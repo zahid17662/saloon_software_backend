@@ -1,9 +1,10 @@
 // Appointment API actions. createAppointment is the ONE public, unauthenticated write in this API
 // (called from the public website's booking form) — it is rate-limited per IP instead of requiring
-// a session. list/updateStatus are admin-only, same as every other admin screen.
+// a session. list is readable by any unlocked shop device (barber or admin); updateStatus stays
+// admin-only, since only the admin triages bookings.
 
 import { db } from "@/db";
-import { attemptStore, getClientIp, requireAdmin } from "@/lib/auth";
+import { attemptStore, getClientIp, requireAdmin, requireShop } from "@/lib/auth";
 import { beginAttempt } from "@/lib/rate-limit";
 import { appointmentCreateInput, appointmentStatusPatch } from "@/lib/schemas";
 import type { Appointment } from "@/lib/types";
@@ -31,7 +32,7 @@ export async function createAppointment(input: unknown): Promise<ActionResult<Ap
 
 export async function listAppointments(): Promise<ActionResult<Appointment[]>> {
   return runAction(async () => {
-    await requireAdmin();
+    await requireShop();
     return appointments.listAppointments(db);
   });
 }
