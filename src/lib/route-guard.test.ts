@@ -1,19 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { guardRoute, safeNext } from "./route-guard";
 
-const none = { hasAdmin: false };
+const none = { hasShop: false, hasAdmin: false };
 
 describe("guardRoute", () => {
-  it("allows barber panel routes directly without a shop cookie", () => {
-    expect(guardRoute({ pathname: "/", search: "", ...none })).toBeNull();
-    expect(guardRoute({ pathname: "/barber-login/3", search: "", ...none })).toBeNull();
-    expect(guardRoute({ pathname: "/barber/3", search: "", ...none })).toBeNull();
-    expect(guardRoute({ pathname: "/receipt/9", search: "", ...none })).toBeNull();
+  it("sends a device with no cookie from the staff screens to /unlock", () => {
+    for (const pathname of ["/pos", "/barber-login/3", "/barber/3", "/receipt/9"]) {
+      expect(guardRoute({ pathname, search: "", ...none }), pathname).toEqual({ redirect: "/unlock" });
+    }
   });
 
-  it("redirects /unlock to /", () => {
-    expect(guardRoute({ pathname: "/unlock", search: "", ...none })).toEqual({ redirect: "/" });
-    expect(guardRoute({ pathname: "/unlock", search: "", hasAdmin: true })).toEqual({ redirect: "/" });
+  it("leaves the public website open", () => {
+    expect(guardRoute({ pathname: "/", search: "", ...none })).toBeNull();
+    expect(guardRoute({ pathname: "/images/hero.jpg", search: "", ...none })).toBeNull();
+    expect(guardRoute({ pathname: "/posters", search: "", ...none })).toBeNull();
+  });
+
+  it("lets an unlocked device or an admin through", () => {
+    expect(guardRoute({ pathname: "/pos", search: "", hasShop: true, hasAdmin: false })).toBeNull();
+    expect(guardRoute({ pathname: "/pos", search: "", hasShop: false, hasAdmin: true })).toBeNull();
+  });
+
+  it("always allows /unlock", () => {
+    expect(guardRoute({ pathname: "/unlock", search: "", ...none })).toBeNull();
+    expect(guardRoute({ pathname: "/unlock", search: "", hasShop: true, hasAdmin: true })).toBeNull();
   });
 
   it("always allows /admin/login, even with no cookies", () => {
@@ -30,7 +40,7 @@ describe("guardRoute", () => {
   });
 
   it("lets an admin cookie through /admin/*", () => {
-    expect(guardRoute({ pathname: "/admin/sales", search: "", hasAdmin: true })).toBeNull();
+    expect(guardRoute({ pathname: "/admin/sales", search: "", hasShop: false, hasAdmin: true })).toBeNull();
   });
 
   it("does not treat /adminx as an admin path", () => {

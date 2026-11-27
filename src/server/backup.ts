@@ -7,11 +7,16 @@ import type { Db } from "./db-types";
 import { getSettings } from "./catalog";
 
 export async function exportBackup(db: Db, now: Date = new Date()) {
-  const [shop, cats, svcs, bars, saleRows, items, pays] = await Promise.all([
-    getSettings(db),
-    db.select().from(categories).orderBy(asc(categories.id)),
-    db.select().from(services).orderBy(asc(services.id)),
-    db
+  // One read-only snapshot: a sale saved during the backup is either fully in it or not at all.
+  return db.transaction((tx) => readAll(tx as unknown as Db, now), { isolationLevel: "repeatable read", accessMode: "read only" });
+}
+
+async function readAll(db: Db, now: Date) {
+  // Sequential on purpose: one transaction is one connection.
+  const shop = await getSettings(db);
+  const cats = await db.select().from(categories).orderBy(asc(categories.id));
+  const svcs = await db.select().from(services).orderBy(asc(services.id));
+  const bars = await db
       .select({
         id: barbers.id,
         name: barbers.name,
@@ -20,12 +25,11 @@ export async function exportBackup(db: Db, now: Date = new Date()) {
         active: barbers.active,
         createdAt: barbers.createdAt,
       })
-      .from(barbers)
-      .orderBy(asc(barbers.id)),
-    db.select().from(sales).orderBy(asc(sales.id)),
-    db.select().from(saleItems).orderBy(asc(saleItems.id)),
-    db.select().from(payouts).orderBy(asc(payouts.id)),
-  ]);
+    .from(barbers)
+    .orderBy(asc(barbers.id));
+  const saleRows = await db.select().from(sales).orderBy(asc(sales.id));
+  const items = await db.select().from(saleItems).orderBy(asc(saleItems.id));
+  const pays = await db.select().from(payouts).orderBy(asc(payouts.id));
   return {
     exportedAt: now.toISOString(),
     settings: shop,

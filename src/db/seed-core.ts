@@ -17,6 +17,8 @@ const SEED_LOCK = 7002;
 export interface SeedOptions {
   pin: string;
   shopCode: string;
+  /** Starting password of every seeded barber. Defaults to the dev-only demo password. */
+  barberPassword?: string;
   bcryptCost?: number;
 }
 
@@ -30,10 +32,10 @@ export interface SeedResult {
 export async function seedDb(db: AnyDb, opts: SeedOptions): Promise<SeedResult> {
   const data = createSeed();
   const cost = opts.bcryptCost ?? 12;
-  const [adminPinHash, shopCodeHash, demoBarberPasswordHash] = await Promise.all([
+  const [adminPinHash, shopCodeHash, barberPasswordHash] = await Promise.all([
     bcrypt.hash(opts.pin, cost),
     bcrypt.hash(opts.shopCode, cost),
-    bcrypt.hash(DEMO_BARBER_PASSWORD, cost),
+    bcrypt.hash(opts.barberPassword ?? DEMO_BARBER_PASSWORD, cost),
   ]);
 
   return db.transaction(async (tx) => {
@@ -69,7 +71,7 @@ export async function seedDb(db: AnyDb, opts: SeedOptions): Promise<SeedResult> 
         commissionPct: b.commissionPct,
         sortOrder: b.sortOrder,
         active: b.active,
-        passwordHash: demoBarberPasswordHash,
+        passwordHash: barberPasswordHash,
       }));
       await tx.insert(barbers).values(rows);
       out.barbers = rows.length;

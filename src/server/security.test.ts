@@ -42,7 +42,7 @@ vi.mock("@/db", async () => {
   };
 });
 
-import { readBackup } from "../actions/reads";
+import { readBackup, readBarber, readBarberLogin, readCatalog, readHome, readReceipt } from "../actions/reads";
 import * as authActions from "../actions/auth";
 import * as catalogActions from "../actions/catalog";
 import * as payoutActions from "../actions/payouts";
@@ -316,6 +316,33 @@ describe("1. admin actions refuse every forged, stale or missing cookie", () => 
 // 6. XSS sinks, CSV injection
 // =====================================================================================
 
+describe("shop-code lock: staff data needs an unlocked device", () => {
+  const unlock = { status: "redirect", to: "/unlock" };
+
+  it("a visitor with no or a forged shop cookie gets no names, earnings, catalog or receipts", async () => {
+    const saleId = await mkSale();
+    for (const shop of [undefined, "garbage", flipSig(await validShop())]) {
+      setJar({ shop, barber: await validBarber(ids.barberA) });
+      expect(await readCatalog()).toBeNull();
+      expect(await readHome()).toEqual(unlock);
+      expect(await readBarber(ids.barberA)).toEqual(unlock);
+      expect(await readBarberLogin(ids.barberA)).toEqual(unlock);
+      expect(await readReceipt(saleId)).toEqual(unlock);
+      expect((await authActions.barberLogin({ barberId: ids.barberA, password: DEMO_BARBER_PASSWORD })).ok).toBe(false);
+    }
+  });
+
+  it("an unlocked device reads them; a cookie from before a shop-code change does not", async () => {
+    setJar({ shop: await validShop() });
+    expect(await readCatalog()).not.toBeNull();
+    expect((await readHome()).status).toBe("ok");
+    expect((await readBarberLogin(ids.barberA)).status).toBe("ok");
+    setJar({ shop: await validShop(99) });
+    expect(await readCatalog()).toBeNull();
+    expect(await readHome()).toEqual(unlock);
+  });
+});
+
 describe("6. output safety", () => {
   it("no source file uses an HTML-injection sink (dangerouslySetInnerHTML, innerHTML, document.write, eval)", () => {
     const hits: string[] = [];
@@ -333,8 +360,7 @@ describe("6. output safety", () => {
     expect(hits).toEqual([]);
   });
 
-  // KNOWN GAP (LOW): a cell starting with = + - @ (or tab / CR) is run as a formula by Excel.
-  it.fails("CSV export neutralises cells that start with = + - @ (formula injection)", () => {
+  it("CSV export neutralises cells that start with = + - @ (formula injection)", () => {
     const evil = ['=HYPERLINK("http://evil.example","click")', "+1+1", "-2+3", "@SUM(1+1)", "\t=1+1", "\r=1+1"];
     const csv = toCsv(["name"], evil.map((e) => [e]));
     expect(csv).not.toMatch(/(^|\r\n)"?[=+\-@\t\r]/m);

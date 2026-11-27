@@ -6,7 +6,7 @@ import { defineConfig } from "drizzle-kit";
 // drizzle-kit's config loader doesn't populate import.meta.dirname, so derive it from import.meta.url.
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Local development only: load Server/.env, then the old Client/.env.local of the dev meta-repo if
+// Local development only: load Server/.env, then Client/.env.local if
 // present. On Render the variables come from the service environment and neither file exists.
 config({ path: path.resolve(dirname, ".env") });
 config({ path: path.resolve(dirname, "../Client/.env.local") });

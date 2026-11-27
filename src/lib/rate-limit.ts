@@ -12,7 +12,7 @@ export const WINDOW_MS = 15 * 60 * 1000;
 /** Across all IPs, per kind. 10,000 four-digit codes / 50 per 15 min is about 50 hours of guessing. */
 export const GLOBAL_MAX_ATTEMPTS = 50;
 
-export type AttemptKind = "shop" | "admin" | "barber";
+export type AttemptKind = "shop" | "admin" | "barber" | "appointment";
 
 export interface AttemptStore {
   insert(ip: string, kind: AttemptKind, at: Date): Promise<number>;

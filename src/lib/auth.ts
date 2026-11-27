@@ -219,9 +219,11 @@ export async function getAuthenticatedBarberId(): Promise<number | null> {
 
 /**
  * Call at the top of every API action that acts AS a specific barber (creating or voiding their
- * own sale). The device must hold that specific barber's own password session (or an admin session).
+ * own sale). The device must hold a valid shop session AND that barber's own password session, so
+ * changing the shop code also revokes every barber session. An admin session bypasses both.
  */
 export async function requireBarberSelf(barberId: number): Promise<void> {
   if (await hasValidAdminSession()) return;
+  if (!(await hasValidShopSession())) throw new AuthError();
   if (!(await hasValidBarberSession(barberId))) throw new AuthError();
 }

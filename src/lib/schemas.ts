@@ -172,6 +172,44 @@ export const salesQuery = z
     path: ["to"],
   });
 
+// ---------- appointments ----------
+// The public booking form on the (English) website: its messages must be English, unlike every
+// other schema here. parseInputRaw (not parseInput) is used for this one so the message survives.
+const APPT_MSG = {
+  name: "Please enter your name",
+  phone: "Please enter a valid phone number",
+  service: "Please choose a service",
+  tooLong: "That's too long",
+  badDate: "Please choose a valid date",
+  badTime: "Please choose a valid time",
+  note: "Your note is too long",
+} as const;
+
+const appointmentPhone = z
+  .string({ error: APPT_MSG.phone })
+  .trim()
+  .regex(/^(\+?880)?0?1[3-9]\d{8}$/, APPT_MSG.phone);
+
+export const appointmentCreateInput = z.strictObject({
+  serviceName: z.string({ error: APPT_MSG.service }).trim().min(1, APPT_MSG.service).max(120, APPT_MSG.tooLong),
+  barberId: idSchema.nullable(),
+  customerName: z.string({ error: APPT_MSG.name }).trim().min(1, APPT_MSG.name).max(80, APPT_MSG.tooLong),
+  customerPhone: appointmentPhone,
+  date: z.string({ error: APPT_MSG.badDate }).regex(/^\d{4}-\d{2}-\d{2}$/, APPT_MSG.badDate),
+  time: z.string({ error: APPT_MSG.badTime }).regex(/^\d{2}:\d{2}$/, APPT_MSG.badTime),
+  note: z.string({ error: APPT_MSG.note }).trim().max(200, APPT_MSG.note).default(""),
+  idempotencyKey: z.string({ error: M.id }).trim().min(8, M.id).max(64, M.id),
+});
+
+// Admin screen: Bangla, like the rest of the admin surface.
+export const appointmentStatusPatch = z.strictObject({
+  id: idSchema,
+  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "DONE"], { error: M.id }),
+});
+
+export type AppointmentCreateInput = z.infer<typeof appointmentCreateInput>;
+export type AppointmentStatusPatch = z.infer<typeof appointmentStatusPatch>;
+
 export type SaleInput = z.infer<typeof saleInput>;
 export type PastSaleInput = z.infer<typeof pastSaleInput>;
 export type SalesQuery = z.infer<typeof salesQuery>;

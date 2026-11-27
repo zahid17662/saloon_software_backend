@@ -4,6 +4,7 @@
 export type PaymentMethod = "CASH" | "BKASH" | "NAGAD" | "OTHER";
 export type VoidedBy = "BARBER" | "ADMIN";
 export type PaperWidth = "58" | "80" | "A4";
+export type AppointmentStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "DONE";
 
 export interface Category {
   id: number;
@@ -64,6 +65,20 @@ export interface Payout {
   createdAt: string; // ISO (UTC)
 }
 
+/** A customer's online booking request from the public site (admin screens manage these). */
+export interface Appointment {
+  id: number;
+  customerName: string;
+  customerPhone: string;
+  serviceName: string; // snapshot: the public site's price list is static, not this table's services
+  barberId: number | null;
+  barberName: string | null; // snapshot; null = the customer had no preference
+  requestedAt: string; // ISO (UTC)
+  note: string;
+  status: AppointmentStatus;
+  createdAt: string; // ISO (UTC)
+}
+
 export interface Settings {
   shopName: string;
   shopAddress: string;
@@ -88,4 +103,11 @@ export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   BKASH: "বিকাশ",
   NAGAD: "নগদ",
   OTHER: "অন্যান্য",
+};
+
+export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
+  PENDING: "অপেক্ষমাণ",
+  CONFIRMED: "নিশ্চিত",
+  CANCELLED: "বাতিল",
+  DONE: "সম্পন্ন",
 };

@@ -52,6 +52,11 @@ export function dhakaDateToIso(dateKey: string): string {
   return new Date(Date.parse(`${dateKey}T12:00:00Z`) - DHAKA_OFFSET_MS).toISOString();
 }
 
+/** Convert a Dhaka "YYYY-MM-DD" + "HH:MM" wall-clock moment to the UTC instant it represents. */
+export function dhakaDateTimeToIso(dateKey: string, timeKey: string): string {
+  return new Date(Date.parse(`${dateKey}T${timeKey}:00Z`) - DHAKA_OFFSET_MS).toISOString();
+}
+
 const dateTimeFmt = new Intl.DateTimeFormat("bn-BD", {
   timeZone: "Asia/Dhaka",
   day: "numeric",

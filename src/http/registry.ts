@@ -2,6 +2,7 @@
 // file is the whole public surface of the API. Every function keeps doing its own auth and zod
 // validation (see src/actions/*), exactly as the old Next.js Server Actions did.
 
+import * as appointments from "@/actions/appointments";
 import * as auth from "@/actions/auth";
 import * as catalog from "@/actions/catalog";
 import * as payouts from "@/actions/payouts";
@@ -55,11 +56,16 @@ export const registry: Record<string, Handler> = {
   "payouts.getPayoutsView": payouts.getPayoutsView,
   "payouts.addPayout": payouts.addPayout,
   "payouts.deletePayout": payouts.deletePayout,
+  // appointments (public booking form + admin triage)
+  "appointments.create": appointments.createAppointment,
+  "appointments.list": appointments.listAppointments,
+  "appointments.updateStatus": appointments.updateAppointmentStatus,
   // page reads
   "read.catalog": reads.readCatalog,
   "read.home": reads.readHome,
   "read.barber": idArg(reads.readBarber),
   "read.barberLogin": idArg(reads.readBarberLogin),
+  "read.barbersPublic": reads.readActiveBarbers,
   // Any other value (a malformed URL id arrives as 0) means "no such sale", after the shop-session check.
   "read.receipt": async (id: unknown) => reads.readReceipt(typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? id : 0),
   "read.shopName": reads.readShopName,

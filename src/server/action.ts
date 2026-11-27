@@ -44,3 +44,13 @@ export function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.in
   const first = r.error.issues[0]?.message ?? "";
   throw new DomainError(BANGLA.test(first) ? first : MSG.badInput);
 }
+
+/**
+ * Like parseInput, but for the handful of public-facing (English) schemas: the first issue's own
+ * message is always shown, never swapped for the Bangla generic one.
+ */
+export function parseInputRaw<S extends z.ZodType>(schema: S, input: unknown): z.infer<S> {
+  const r = schema.safeParse(input);
+  if (r.success) return r.data;
+  throw new DomainError(r.error.issues[0]?.message ?? "Invalid input");
+}

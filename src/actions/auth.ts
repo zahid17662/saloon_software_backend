@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { barbers, db, settings } from "@/db";
 import {
   attemptStore,
+  AuthError,
   checkSecret,
   clearAdminCookie,
   clearBarberCookie,
@@ -12,6 +13,7 @@ import {
   hasValidBarberSession,
   hasValidShopSession,
   hashSecret,
+  requireShop,
   setAdminCookie,
   setBarberCookie,
   setShopCookie,
@@ -151,19 +153,17 @@ export async function changeShopCode(input: unknown): Promise<ActionResult> {
 
 /** Used by the barber screens to notice a stale device (e.g. after the shop code changed). */
 export async function checkShopSession(): Promise<{ valid: boolean }> {
-  try {
-    const valid = (await hasValidShopSession()) || (await hasValidAdminSession());
-    if (!valid) await clearShopCookie();
-    return { valid };
-  } catch (e) {
-    logFailure("checkShopSession", e);
-    return { valid: false };
-  }
+  // No catch on purpose: a database outage must reach the caller as a failure, not as "logged out".
+  const valid = (await hasValidShopSession()) || (await hasValidAdminSession());
+  if (!valid) await clearShopCookie();
+  return { valid };
 }
 
-/** A barber logging in to their own screen. */
+/** A barber logging in to their own screen. The device must already be shop-unlocked. */
 export async function barberLogin(input: unknown): Promise<ActionResult> {
   try {
+    await requireShop();
+
     const ip = await getClientIp();
     if (!ip) return fail(MSG.generic);
     if (!(await beginAttempt(attemptStore, ip, "barber")).allowed) return fail(MSG.blocked);
@@ -182,6 +182,7 @@ export async function barberLogin(input: unknown): Promise<ActionResult> {
     await setBarberCookie(barber.id, barber.passwordHash);
     return { ok: true };
   } catch (e) {
+    if (e instanceof AuthError) return fail(MSG.wrongCode); // device itself is not shop-unlocked
     logFailure("barberLogin", e);
     return fail(MSG.generic);
   }
@@ -200,10 +201,5 @@ export async function barberLogout(): Promise<ActionResult> {
 
 /** Used by the barber screen to notice its own session going stale (password changed, deactivated). */
 export async function checkBarberSession(barberId: number): Promise<{ valid: boolean }> {
-  try {
-    return { valid: await hasValidBarberSession(barberId) };
-  } catch (e) {
-    logFailure("checkBarberSession", e);
-    return { valid: false };
-  }
+  return { valid: await hasValidBarberSession(barberId) }; // an outage throws: see checkShopSession
 }

@@ -24,6 +24,12 @@ export const paymentMethod = pgEnum("payment_method", [
   "OTHER",
 ]);
 export const voidedBy = pgEnum("voided_by", ["BARBER", "ADMIN"]);
+export const appointmentStatus = pgEnum("appointment_status", [
+  "PENDING",
+  "CONFIRMED",
+  "CANCELLED",
+  "DONE",
+]);
 
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
@@ -151,8 +157,35 @@ export const loginAttempts = pgTable(
   {
     id: serial("id").primaryKey(),
     ip: text("ip").notNull(),
-    kind: text("kind").notNull(), // "admin" | "shop"
+    kind: text("kind").notNull(), // "admin" | "shop" | "barber" | "appointment"
     createdAt: tz("created_at").notNull().defaultNow(),
   },
   (t) => [index("login_attempts_lookup_idx").on(t.ip, t.kind, t.createdAt)],
+);
+
+// A customer's online booking request from the public site. serviceName is a text snapshot (the
+// public price list is static, not the services table above); barberNameSnapshot likewise, so a
+// later rename or removal never changes what the shop already promised the customer.
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: serial("id").primaryKey(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    customerName: text("customer_name").notNull(),
+    customerPhone: text("customer_phone").notNull(),
+    serviceName: text("service_name").notNull(),
+    barberId: integer("barber_id").references(() => barbers.id, { onDelete: "set null" }),
+    barberNameSnapshot: text("barber_name_snapshot"), // null = no preference
+    requestedAt: tz("requested_at").notNull(),
+    note: text("note").notNull().default(""),
+    status: appointmentStatus("status").notNull().default("PENDING"),
+    createdAt: tz("created_at").notNull().defaultNow(),
+    respondedAt: tz("responded_at"),
+  },
+  (t) => [
+    uniqueIndex("appointments_idempotency_uq").on(t.idempotencyKey),
+    index("appointments_requested_idx").on(t.requestedAt),
+    index("appointments_status_idx").on(t.status),
+    index("appointments_barber_idx").on(t.barberId),
+  ],
 );

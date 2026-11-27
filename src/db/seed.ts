@@ -8,8 +8,8 @@
  *   Re-running creates no duplicates and never overwrites a PIN/shop code that was changed later.
  * - Everything runs in one transaction under an advisory lock, so concurrent runs are safe too.
  *
- * Env: DIRECT_URL (or DATABASE_URL). Optional: SEED_ADMIN_PIN, SEED_SHOP_CODE.
- *      SEED_ENV=production requires both to be set explicitly (no demo fallback).
+ * Env: DIRECT_URL (or DATABASE_URL). Optional: SEED_ADMIN_PIN, SEED_SHOP_CODE, SEED_BARBER_PASSWORD.
+ *      SEED_ENV=production requires all three to be set explicitly (no demo fallback).
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +22,7 @@ import { seedDb } from "./seed-core";
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Resolved from this file's own location (not cwd). Local development only: Server/.env, then the
-// old Client/.env.local of the dev meta-repo if present.
+// Client/.env.local if present.
 config({ path: path.resolve(dirname, "../../.env") });
 config({ path: path.resolve(dirname, "../../../Client/.env.local") });
 
@@ -39,15 +39,22 @@ async function main() {
   const isProd = process.env.SEED_ENV === "production";
   const pin = process.env.SEED_ADMIN_PIN ?? (isProd ? undefined : DEMO_ADMIN_PIN);
   const shopCode = process.env.SEED_SHOP_CODE ?? (isProd ? undefined : DEMO_SHOP_CODE);
-  if (!pin || !shopCode) {
-    throw new Error("SEED_ENV=production requires SEED_ADMIN_PIN and SEED_SHOP_CODE");
+  const barberPassword = process.env.SEED_BARBER_PASSWORD;
+  if (!pin || !shopCode || (isProd && !barberPassword)) {
+    console.error("SEED_ENV=production requires SEED_ADMIN_PIN, SEED_SHOP_CODE and SEED_BARBER_PASSWORD");
+    process.exit(1);
+  }
+  // Same rule as the "new barber" form, so the seeded password is never weaker than a typed one.
+  if (barberPassword && !/^(?=.*[A-Za-z])(?=.*\d).{6,72}$/.test(barberPassword)) {
+    console.error("SEED_BARBER_PASSWORD needs 6 or more characters with both letters and digits");
+    process.exit(1);
   }
 
   console.log(`Seeding Neon endpoint: ${endpointId(url)}`);
 
   const pool = new Pool({ connectionString: url });
   try {
-    const result = await seedDb(drizzle(pool), { pin, shopCode });
+    const result = await seedDb(drizzle(pool), { pin, shopCode, barberPassword });
     console.log("Inserted this run:", result);
     console.log("(0 means that table was already seeded; nothing was changed.)");
   } finally {
